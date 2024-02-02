@@ -38,7 +38,7 @@ ON
 		c."name" LIKE '%America%'
 	GROUP BY
 		Continent
-) AS Americas
+) AS America
 ORDER BY
 	Total,
 	Continent ASC ;
@@ -54,4 +54,32 @@ ORDER BY
 --   51|Asia      |
 --   58|Africa    |
 
+--Solucion del profesor
+SELECT
+	count(*) AS Total,
+	c."name" AS Continent
+FROM
+	continent c
+INNER JOIN country co
+ON
+	c.code = co.continent
+WHERE
+	c."name" NOT LIKE '%America%'
+GROUP BY
+	c."name"
+UNION
+SELECT
+	count(*) AS Total ,
+	'America' AS Continent
+FROM
+	country co
+INNER JOIN 
+	continent c
+	ON
+		co.continent = c.code
+	WHERE
+		c."name" LIKE '%America%'
+ORDER BY
+	Total,
+	Continent ASC ;
 
