@@ -1,0 +1,36 @@
+
+//primera tabla (sesión 6 Tabla de "users")
+table users{
+  user_id integer [pk, increment]
+  username varchar(30) [not null]
+  name varchar [not null]
+  role varchar(10) [not null]
+  gender varchar(10) [not null]
+  avatar varchar
+  
+  created_at timestamp [default: 'now()']
+}
+
+//segunda tabla (sesión 7 Tabla de "posts")
+table posts {
+  port_id integer [pk, increment]
+  title varchar(100) [default: '']
+  body text [default: '']
+  //imagen principal del post
+  og_image varchar //Open Graph ver https://ogp.me/
+  //url fácil de leer 
+  slug varchar [not null] //ver https://www.maestrosdelweb.com/urlamigable/
+
+  published boolean [not null, default: false]
+  //comprobar si el false va entre '' o no
+
+  //Id del usuario creador
+  //arrastrando desde user_id a created_by se crea la
+  //línea Ref: "users"."user_id" < "posts"."created_by"
+  // que está justo después de esta definición de tabla
+  created_by integer
+}
+
+Ref: "users"."user_id" < "posts"."created_by"
+
+//tercera tabla (sesión 8 Tabla de "claps")
