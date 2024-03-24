@@ -4,13 +4,17 @@
 //primera tabla (sesión 6 Tabla de "users")
 table users{
   user_id integer [pk, increment]
-  username varchar(30) [not null]
+  username varchar(30) [not null, unique]
+  email varchar(30) [not null, unique]
+  password varchar [not null]
   name varchar [not null]
   role varchar(10) [not null]
   gender varchar(10) [not null]
   avatar varchar
   
   created_at timestamp [default: 'now()']
+
+
 }
 
 //segunda tabla (sesión 7 Tabla de "posts")
@@ -21,7 +25,7 @@ table posts {
   //imagen principal del post
   og_image varchar //Open Graph ver https://ogp.me/
   //url fácil de leer 
-  slug varchar [not null] //ver https://www.maestrosdelweb.com/urlamigable/
+  slug varchar [not null, unique] //ver https://www.maestrosdelweb.com/urlamigable/
 
   published boolean [not null, default: false]
   //comprobar si el false va entre '' o no
@@ -31,6 +35,8 @@ table posts {
   //línea Ref: "users"."user_id" < "posts"."created_by"
   // que está justo después de esta definición de tabla
   created_by integer
+  //para saber la fecha creacion del post
+  created_at timestamp [default: 'now()']
 }
 
 Ref: "users"."user_id" < "posts"."created_by"
@@ -44,6 +50,16 @@ table claps {
 
   created_at timestamp [default: 'now()']
   
+  indexes {
+    //Indice que nos hará mas rápido averiguar si 
+    //ya hemos hecho clap en este post
+    (post_id, user_id) [unique] 
+    //Indice que nos hará mas rápido el recuento 
+    //de claps por post 
+    //no es unique poque hay muchos claps al mismo
+    //post
+    post_id 
+  }
 }
 
 Ref: "claps"."clap_id" > "posts"."post_id"
@@ -55,12 +71,19 @@ Table comments{
     post_id integer
     user_id integer 
     content text
-    created_at timestamp
+    created_at timestamp [default: 'now()']
     visible boolean
     
     comment_parent_id integer
-}
 
+    indexes {
+      //para cargar todos los comentarios de un post
+      post_id
+      //para hacer mas rápido cargar solo los post 
+      //que no están ocultos
+      visible
+    }
+}
 
 
 
@@ -81,6 +104,14 @@ Table users_lists{
   user_id integer
   title varchar(100)
   
+  indexes {
+    //una persona solo puede tener cada lista una vez
+    (user_id, title) [unique]
+    //para agilizar obtener las listas que
+    //tiene un usuario (para cuando el usuario
+    //quiere guardar el post en una de sus listas)
+    user_id
+  }
 }
 
 
@@ -90,10 +121,8 @@ Table user_list_entry{
   user_list_entry_id integer [pk, increment]
   user_list_id integer
   post_id integer
-  
+
 }
-
-
 
 
 Ref: "users"."user_id" < "users_lists"."user_id"
@@ -101,3 +130,10 @@ Ref: "users"."user_id" < "users_lists"."user_id"
 Ref: "users_lists"."user_list_id" < "user_list_entry"."user_list_id"
 
 Ref: "posts"."post_id" < "user_list_entry"."post_id"
+
+/******************************************************
+DESPUÉS DE DISEÑAR LA BBDD, LA EXPORTAMOS PARA 
+POSTGRES.
+SE DESCARGA EL FICHERO CON EL NOMBRE DE LA BBDD
+QUE HE INCLUIDO EN ESTA CARPETA
+*******************************************************/
