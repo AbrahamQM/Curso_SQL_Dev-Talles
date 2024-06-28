@@ -88,7 +88,7 @@ LEFT JOIN user_lists ul ON ul.user_id = u.user_id
 WHERE ul.user_id  IS NULL ;
 
 
--- 9. Quiero el comentario con id
+-- 9. Quiero el comentario con id 1
 -- Y en el mismo resultado, quiero sus respuestas (visibles e invisibles)
 -- Tip: union
 /*
@@ -98,37 +98,28 @@ WHERE ul.user_id  IS NULL ;
 4768	835	1447	nostrud nulla...
 */
 
---visibles:
-SELECT child.comment_id,  visible    
-FROM  "comments" child 
-WHERE child.comment_parent_id IS NOT NULL AND child.visible 
-GROUP BY child.comment_id ;
---ocultos:
-SELECT child.comment_id,  visible   
-FROM  "comments" child 
-WHERE child.comment_parent_id IS NOT NULL AND NOT child.visible 
-GROUP BY child.comment_id ;
+SELECT
+	comment_id,
+	post_id,
+	user_id,
+	"content"
+FROM
+	"comments" c
+WHERE
+	c.comment_id = 1
+UNION
+SELECT
+	comment_id,
+	post_id,
+	user_id,
+	"content"
+FROM
+	"comments" c
+WHERE
+	c.comment_parent_id = 1
+ORDER BY
+	comment_id;
 
-
-SELECT father.comment_id  AS id, null AS visibles, NULL AS invisibles, father."content" AS "content"   
-FROM "comments" father 
-WHERE father.comment_parent_id IS NULL
-UNION 
-	SELECT child.comment_id AS id, NULL, NULL, child.visible::TEXT   
-	FROM  "comments" child 
-	WHERE child.comment_parent_id IS NOT NULL AND child.visible 
-	GROUP BY child.comment_id 
---GROUP BY father.comment_id  
---ORDER BY id
-LIMIT 5;
-
-
-
-
-SELECT child.comment_id,  count(child) AS visibles, '' AS content   
-FROM  "comments" child 
-WHERE child.comment_parent_id IS NOT NULL AND child.visible 
-GROUP BY child.comment_id ;
 
 
 -- ** 10. Avanzado
@@ -139,9 +130,40 @@ GROUP BY child.comment_id ;
 
 -- Salida esperada:
 /*
-"[{""user"" : 1797, ""comment"" : ""tempor mollit aliqua dolore cupidatat dolor tempor""}, {""user"" : 1842, ""comment"" : ""laborum mollit amet aliqua enim eiusmod ut""}, {""user"" : 1447, ""comment"" : ""nostrud nulla duis enim duis reprehenderit laboris voluptate cupidatat""}]"
+"[{""user"" : 1797, ""comment"" : ""tempor mollit aliqua dolore cupidatat dolor tempor""}, {""user"" : 1842, ""comment"" : ""laborum mollit amet aliqua enim eiusmod ut""},{""user"" : 1447, ""comment"" : ""nostrud nulla duis enim duis reprehenderit laboris voluptate cupidatat""}]"
 */
+SELECT json_agg("content")
+	FROM
+		"comments" c
+	WHERE
+		c.comment_parent_id = 1;
+--json_agg                                                                                                                                                                      |
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+--["tempor mollit aliqua dolore cupidatat dolor tempor", "laborum mollit amet aliqua enim eiusmod ut", "nostrud nulla duis enim duis reprehenderit laboris voluptate cupidatat"]|
+	
+SELECT jsonb_build_object(
+		'user', user_id,
+		'comment', "content" 
+	) AS contenido_del_comentario
+FROM "comments" c 
+WHERE comment_parent_id = 1;
+--contenido_del_comentario                                                                           |
+-----------------------------------------------------------------------------------------------------+
+--{"user": 1797, "comment": "tempor mollit aliqua dolore cupidatat dolor tempor"}                    |
+--{"user": 1842, "comment": "laborum mollit amet aliqua enim eiusmod ut"}                            |
+--{"user": 1447, "comment": "nostrud nulla duis enim duis reprehenderit laboris voluptate cupidatat"}|
 
+--ahora lo unifico en un array de objetos
+SELECT jsonb_agg(
+	jsonb_build_object(
+		'user', user_id,
+		'comment', "content" 
+	)) 
+FROM "comments" c 
+WHERE comment_parent_id = 1;
+--jsonb_agg                                                                                                                                                                                                                                                      |
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+--[{"user": 1797, "comment": "tempor mollit aliqua dolore cupidatat dolor tempor"}, {"user": 1842, "comment": "laborum mollit amet aliqua enim eiusmod ut"}, {"user": 1447, "comment": "nostrud nulla duis enim duis reprehenderit laboris voluptate cupidatat"}]|
 
 
 
@@ -150,8 +172,44 @@ GROUP BY child.comment_id ;
 -- Listar todos los comentarios principales (no respuestas) 
 -- Y crear una columna adicional "replies" con las respuestas en formato JSON
 
+--personalmente añado el id y el conteo de respuestas para despues poder comprobar que el resultado coincide.
+SELECT c.comment_id, c.content, count(c2.*) AS replies_quantity, json_agg(c2.content) AS replies
+FROM "comments" c
+JOIN "comments" c2 ON c2.comment_parent_id = c.comment_id
+WHERE c.comment_parent_id IS NULL
+GROUP BY c.CONTENT, c.comment_id;
 
+--comment_id|content                                                                        |replies_quantity|replies                                                                                                                                                                           
+------------+-------------------------------------------------------------------------------+----------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--         1|elit id aute consequat culpa ullamco                                           |               3|["tempor mollit aliqua dolore cupidatat dolor tempor", "nostrud nulla duis enim duis reprehenderit laboris voluptate cupidatat", "laborum mollit amet aliqua enim eiusmod ut"]    
+--         2|ipsum ut est adipisicing do                                                    |               3|["ex duis", "mollit in officia non esse duis culpa", "sint laborum ut nisi magna"]                                                                                                
+--         3|ut consectetur ullamco do                                                      |               2|["sit ipsum non reprehenderit minim non exercitation veniam et ad", "sunt occaecat reprehenderit amet"]                                                                           
+--         4|dolore enim                                                                    |               3|["ex Lorem cupidatat esse", "magna occaecat amet et dolore", "sint velit laboris pariatur ipsum id officia eiusmod sint culpa"]                                                   
+--         5|sit sunt proident anim occaecat ipsum velit sit cillum do                      |               1|["elit tempor irure laboris aute aliqua nulla et aute laboris"]                                                                                                                   
+--         6|labore esse fugiat adipisicing est laborum                                     |               4|["duis laborum", "duis commodo dolore", "aliquip ex qui cillum cillum ipsum", "anim fugiat occaecat id minim aliquip occaecat laborum commodo do"]                                
+--         7|velit culpa est enim laboris velit voluptate exercitation magna                |               3|["exercitation anim dolore voluptate id ullamco ipsum", "cupidatat nulla", "pariatur proident aute ea ad adipisicing culpa laboris Lorem"]                                        
+--         8|quis in incididunt sint sit minim esse aliqua sint cupidatat                   |               4|["qui in eu est sit ad eiusmod anim", "cupidatat Lorem sunt excepteur consequat", "dolor cillum exercitation cillum eu", "aliqua excepteur in mollit tempor"]                     
+--         9|qui sunt nostrud fugiat amet eu ad in est cupidatat                            |               3|["irure do et", "id magna fugiat dolore commodo proident tempor non", "ad consequat aute"]                                                                                        
+--        10|est quis                                                                       |               3|["laborum sit", "labore ad tempor adipisicing ex esse ad sint mollit dolore", "nulla voluptate voluptate irure esse"]                                                             
+-- RECORTADO SOLO PARA MUESTRA
 
+--consulta para comprobar que las replicas coinciden con el resultaro en un elemento de ejemplo.
+SELECT count(*) FROM "comments" c 
+WHERE c.comment_parent_id = 6;
+--count|
+-------+
+--    4|
 
-
-
+--solución del profesor pero eso no coincide con lo que pide el enunciado y tarda (0.1s Aprox) 10 veces mas que mi consulta (0.01s aprox)
+SELECT 	
+	c.CONTENT, 
+	(
+		SELECT json_agg( json_build_object(
+				'user', c2.user_id,
+				'comment', c2.content
+		))
+		FROM "comments" c2 WHERE c2.comment_parent_id = c.comment_id 
+	) AS replies
+FROM "comments" c 
+WHERE comment_parent_id IS NULL;
+	
