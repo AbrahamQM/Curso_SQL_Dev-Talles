@@ -1,0 +1,54 @@
+//**********************************//
+//************my solution***********//
+
+table user{
+  id int [pk, increment]
+  username varchar(30)
+  name varchar(20)
+  surname varchar(20)
+  bio varchar
+  birthday date
+  password varchar
+  email varchar(30)
+  verified boolean
+  education varchar
+
+  created_at timestamp [default: 'now()']
+}
+
+table user_links{
+  id int [pk, increment]
+  user_id int [ref: > user.id]
+  title varchar(20)
+  link varchar
+  type link_type
+  created_at timestamp [default: 'now()']
+}
+
+enum link_type{
+  homepage
+  social_media
+}
+
+table follow{
+  id int [pk, increment]
+  user int [ref: > user.id]
+  follows_user int [ref: < user.id ]
+  created_at timestamp [default: 'now()']
+}
+
+table tweet {
+  id int [pk, increment]
+  user int [ref: > user.id]
+  likes int
+  multimedia_link varchar
+  created_at timestamp [default: 'now()']
+}
+
+table user_likes {
+  id int [pk, increment]
+  user int [ref: > user.id]
+  tweet int [ref: > tweet.id]
+}
+
+

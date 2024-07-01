@@ -1,0 +1,33 @@
+//**********************************//
+//*********teacher´s solution*******//
+
+table user{
+  id int [pk, increment]
+  name varchar(100)
+  slug  varchar(50)
+  email varchar [unique]
+  bio varchar
+
+  created_at timestamp [default: 'now()']
+}
+
+
+table tweet {
+  id int [pk, increment]
+  content varchar(150)
+  user_id int [ref: > user.id]
+
+  created_at timestamp [default: 'now()']
+}
+
+table follower {
+  id int [pk, increment]
+  follower_id int
+  followed_id int
+
+  created_at timestamp [default: 'now()']
+}
+
+Ref: "user"."id" < "follower"."follower_id"
+
+Ref: "user"."id" < "follower"."followed_id"
