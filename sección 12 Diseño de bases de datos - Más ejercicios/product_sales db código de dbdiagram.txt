@@ -1,0 +1,56 @@
+//wharehouse DB
+
+//sesion 1# product design
+table product{
+  id int [pk, increment]
+  serial varchar
+  name varchar(200)
+  merchant int [ref: > merchant.id] //modificado en sesion 2
+  price float(8,2)
+  status product_status
+  stock int
+  created_at timestamp [default: 'now()']
+}
+
+//stock status enum for product.status
+enum product_status{
+  in_stock
+  out_of_stock
+  running_low
+}
+
+//sesion 2# merchant(provider) & contry design
+table merchant{
+  id int [pk, increment]
+  name varchar
+  country int [ref: > country.id]
+  created_at timestamp [default: 'now()']
+}
+
+table country{
+  id int [pk, increment]
+  name varchar
+}
+
+//sesion 3# orders design
+table order {
+  id int [pk, increment]
+  status order_status
+  user_id int
+  total float(12,2)  
+  created_at timestamp [default: 'now()']
+}
+
+enum order_status{
+  placed
+  confirmed
+  processed
+  completed
+}
+
+table order_item {
+  id int [pk, increment]
+  orde_id int [ref: > order.id]
+  product_id int [ref: > product.id]
+  quantity int 
+}
